@@ -156,7 +156,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
             <span>⬡ {message.metadata.tokens_used} tokens</span>
           )}
           {message.metadata.latency_ms && (
-            <span>⚡ {(message.metadata.latency_ms / 1000).toFixed(1)}s</span>
+            <span> {(message.metadata.latency_ms / 1000).toFixed(1)}s</span>
           )}
           <span style={{ marginLeft: "auto" }}>
             {message.timestamp.toLocaleTimeString("es-ES", {

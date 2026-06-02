@@ -16,7 +16,7 @@ const PLATFORMS: { value: Platform; label: string; badge: string }[] = [
   { value: "twitter", label: "Twitter / X", badge: "𝕏" },
   { value: "linkedin", label: "LinkedIn", badge: "in" },
   { value: "instagram", label: "Instagram", badge: "◈" },
-  { value: "blog", label: "Blog", badge: "✍" },
+  { value: "blog", label: "Blog", badge: "✦" },
   { value: "science", label: "Ciencia", badge: "⚗" },
   { value: "finance", label: "Finanzas", badge: "◎" },
 ];
@@ -100,16 +100,24 @@ export function ChatWindow({ theme, onThemeToggle }: ChatWindowProps) {
               flexShrink: 0,
             }}
           />
-          <span
-            style={{
-              fontSize: "12px",
-              fontWeight: 600,
-              color: "var(--accent-text)",
-              letterSpacing: "0.08em",
-            }}
-          >
-            DIGITAL CONTENT
-          </span>
+          <svg
+  width="20"
+  height="20"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="1.5"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ color: "var(--accent-text)", flexShrink: 0 }}
+>
+  <rect x="7" y="7" width="10" height="10" rx="1"/>
+  <path d="M9 7V4M12 7V4M15 7V4"/>
+  <path d="M9 20v-3M12 20v-3M15 20v-3"/>
+  <path d="M7 9H4M7 12H4M7 15H4"/>
+  <path d="M20 9h-3M20 12h-3M20 15h-3"/>
+  <rect x="9" y="9" width="6" height="6" rx="0.5" fill="currentColor" fillOpacity="0.15"/>
+</svg>
           <span
             style={{
               fontSize: "11px",
@@ -161,7 +169,7 @@ export function ChatWindow({ theme, onThemeToggle }: ChatWindowProps) {
               transition: "border-color 0.15s",
             }}
           >
-            {isDark ? "☀️" : "🌙"}
+            {isDark ? "Light" : "Dark"}
           </button>
         </div>
       </header>
@@ -364,7 +372,7 @@ export function ChatWindow({ theme, onThemeToggle }: ChatWindowProps) {
                       transition: "opacity 0.15s",
                     }}
                   >
-                    {isLoading ? "..." : "GENERATE ⚡"}
+                    {isLoading ? "..." : "GENERATE"}
                   </button>
                 </div>
               </div>
@@ -532,7 +540,7 @@ export function ChatWindow({ theme, onThemeToggle }: ChatWindowProps) {
                       opacity: !input.trim() || isLoading ? 0.4 : 1,
                     }}
                   >
-                    {isLoading ? "..." : "GENERATE ⚡"}
+                    {isLoading ? "..." : "GENERATE"}
                   </button>
                 </div>
               </div>
