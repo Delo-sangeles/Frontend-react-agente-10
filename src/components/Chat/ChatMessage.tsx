@@ -19,6 +19,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
 
+  // Extraemos la imagen si viene en la raíz o dentro de la metadata del hook
+  const imageUrl = message.image_url || (message.metadata as any)?.image_url;
+
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
     setCopied(true);
@@ -113,7 +116,32 @@ export function ChatMessage({ message }: ChatMessageProps) {
           whiteSpace: "pre-wrap",
         }}
       >
-        {message.content}
+        <div>{message.content}</div>
+
+        {/* 🛠️ FIX AQUÍ: Si detecta la imagen base64, la inyecta de forma integrada */}
+        {imageUrl && (
+          <div 
+            style={{ 
+              marginTop: "14px", 
+              borderTop: "0.5px solid var(--border)", 
+              paddingTop: "14px",
+              display: "flex",
+              justifyContent: "center"
+            }}
+          >
+            <img 
+              src={imageUrl} 
+              alt="Visualización del Contenido" 
+              style={{ 
+                maxWidth: "100%", 
+                maxHeight: "350px", 
+                borderRadius: "6px", 
+                border: "0.5px solid var(--border)",
+                objectFit: "contain"
+              }} 
+            />
+          </div>
+        )}
 
         {/* Copy button */}
         <button

@@ -15,6 +15,7 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  image_url?: string; // 👈 Ya existía correctamente
   metadata?: {
     platform?: string;
     model_used?: string;
@@ -46,13 +47,20 @@ export function useAgentChat() {
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<AgentConfig>(DEFAULT_CONFIG);
 
-  const addMessage = useCallback((role: "user" | "assistant", content: string, metadata?: Message["metadata"]) => {
+  // 🛠️ FIX 1: Añadimos image_url como parámetro opcional en la firma de la función
+  const addMessage = useCallback((
+    role: "user" | "assistant", 
+    content: string, 
+    metadata?: Message["metadata"],
+    image_url?: string // 👈 Agregado aquí
+  ) => {
     const message: Message = {
       id: crypto.randomUUID(),
       role,
       content,
       timestamp: new Date(),
       metadata,
+      image_url, // 👈 Se inyecta al nuevo mensaje
     };
     setMessages((prev) => [...prev, message]);
     return message;
@@ -79,12 +87,18 @@ export function useAgentChat() {
 
         const response: GenerateResponse = await generateContent(request);
 
-        addMessage("assistant", response.content, {
-          platform: response.platform,
-          model_used: response.model_used,
-          tokens_used: response.tokens_used,
-          latency_ms: response.latency_ms,
-        });
+        // 🛠️ FIX 2: Pasamos el 'response.image_url' como cuarto parámetro a addMessage
+        addMessage(
+          "assistant", 
+          response.content, 
+          {
+            platform: response.platform,
+            model_used: response.model_used,
+            tokens_used: response.tokens_used,
+            latency_ms: response.latency_ms,
+          },
+          response.image_url // 👈 ¡Salvando la imagen de la API!
+        );
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "Error desconocido";
         setError(errorMsg);
