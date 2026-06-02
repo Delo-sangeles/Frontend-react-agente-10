@@ -2,7 +2,7 @@
 
 const API_URL = "http://localhost:8000";
 
-const MOCK = true; // cambia a false cuando el backend esté listo
+const MOCK = false; // cambia a false cuando el backend esté listo
 
 export type Platform = "blog" | "twitter" | "instagram" | "linkedin" | "science" | "finance";
 export type Tone = "formal" | "casual" | "inspirational" | "educational";
