@@ -4,6 +4,7 @@ import { useAgentChat } from "../../hooks/useAgentChat";
 import { ChatInput } from "./ChatInput";
 import { ChatMessage } from "./ChatMessage";
 import { AgentSteps } from "./AgentSteps";
+import { uploadPDF } from "../../services/api"; // 🛠️ Conexión directa a tu nueva API
 import type { Theme } from "../../hooks/useTheme";
 import type { Platform } from "../../services/api";
 
@@ -25,7 +26,7 @@ const SUGGESTIONS = [
   "IA en la educación del futuro",
   "Tips de productividad para devs",
   "El futuro del trabajo remoto",
-  "Cómo aprender a programar en 2025",
+  "Cómo aprender a programar en 2026",
 ];
 
 export function ChatWindow({ theme, onThemeToggle }: ChatWindowProps) {
@@ -45,6 +46,40 @@ export function ChatWindow({ theme, onThemeToggle }: ChatWindowProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const isDark = theme === "dark";
 
+  // ── ESTADOS Y REFERENCIAS PARA LA SUBIDA DE PDFS ──
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handlePlusClick = () => {
+    fileInputRef.current?.click(); // Abre la ventana nativa del explorador de archivos
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validación extra en cliente para asegurar que solo entren PDFs
+    if (file.type !== "application/pdf" && !file.name.endsWith(".pdf")) {
+      alert("Por favor, selecciona únicamente archivos en formato PDF.");
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      
+      // Enviamos el binario a FastAPI a través de services/api.ts
+      const response = await uploadPDF(file);
+      
+      // Muestra el mensaje retornado por tu index_documents ("Éxito: Se han indexado X fragmentos...")
+      alert(response.message); 
+    } catch (err: any) {
+      alert("Error al subir el archivo: " + (err.message || "Error desconocido"));
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = ""; // Resetea el valor para permitir subir el mismo archivo consecutivamente
+    }
+  };
+
   const handleSend = () => {
     if (!input.trim() || isLoading) return;
     sendMessage(input.trim());
@@ -62,6 +97,22 @@ export function ChatWindow({ theme, onThemeToggle }: ChatWindowProps) {
     }
   };
 
+  // Estilo estricto heredado de tu diseño para el botón "+"
+  const plusButtonStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "transparent",
+    border: "0.5px solid var(--border)",
+    borderRadius: "4px",
+    color: "var(--text-muted)",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontWeight: "bold",
+    transition: "all 0.15s",
+    opacity: isLoading || isUploading ? 0.4 : 1,
+  };
+
   return (
     <div
       style={{
@@ -73,6 +124,15 @@ export function ChatWindow({ theme, onThemeToggle }: ChatWindowProps) {
         flexDirection: "column",
       }}
     >
+      {/* Input de archivos HTML oculto controlado por la referencia */}
+      <input
+        type="file"
+        accept=".pdf"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        style={{ display: "none" }}
+      />
+
       {/* ── Header ── */}
       <header
         style={{
@@ -101,23 +161,23 @@ export function ChatWindow({ theme, onThemeToggle }: ChatWindowProps) {
             }}
           />
           <svg
-  width="20"
-  height="20"
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  strokeWidth="1.5"
-  strokeLinecap="round"
-  strokeLinejoin="round"
-  style={{ color: "var(--accent-text)", flexShrink: 0 }}
->
-  <rect x="7" y="7" width="10" height="10" rx="1"/>
-  <path d="M9 7V4M12 7V4M15 7V4"/>
-  <path d="M9 20v-3M12 20v-3M15 20v-3"/>
-  <path d="M7 9H4M7 12H4M7 15H4"/>
-  <path d="M20 9h-3M20 12h-3M20 15h-3"/>
-  <rect x="9" y="9" width="6" height="6" rx="0.5" fill="currentColor" fillOpacity="0.15"/>
-</svg>
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ color: "var(--accent-text)", flexShrink: 0 }}
+          >
+            <rect x="7" y="7" width="10" height="10" rx="1"/>
+            <path d="M9 7V4M12 7V4M15 7V4"/>
+            <path d="M9 20v-3M12 20v-3M15 20v-3"/>
+            <path d="M7 9H4M7 12H4M7 15H4"/>
+            <path d="M20 9h-3M20 12h-3M20 15h-3"/>
+            <rect x="9" y="9" width="6" height="6" rx="0.5" fill="currentColor" fillOpacity="0.15"/>
+          </svg>
           <span
             style={{
               fontSize: "11px",
@@ -309,7 +369,7 @@ export function ChatWindow({ theme, onThemeToggle }: ChatWindowProps) {
                     }
                   }}
                   disabled={isLoading}
-                  placeholder="Describe your topic... e.g. 'AI trends in healthcare 2025'"
+                  placeholder="Describe your topic... e.g. 'AI trends in healthcare'"
                   rows={3}
                   style={{
                     width: "100%",
@@ -354,26 +414,50 @@ export function ChatWindow({ theme, onThemeToggle }: ChatWindowProps) {
                     <span>{showAdvanced ? "▲" : "▼"}</span>
                     <span>Advanced options</span>
                   </button>
-                  <button
-                    onClick={handleSend}
-                    disabled={!input.trim() || isLoading}
-                    style={{
-                      background: "var(--accent)",
-                      color: "var(--btn-text)",
-                      border: "none",
-                      padding: "8px 20px",
-                      borderRadius: "4px",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                      letterSpacing: "0.05em",
-                      opacity: !input.trim() || isLoading ? 0.4 : 1,
-                      transition: "opacity 0.15s",
-                    }}
-                  >
-                    {isLoading ? "..." : "GENERATE"}
-                  </button>
+
+                  {/* Acciones en Home Vacío */}
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <button
+                      onClick={handleSend}
+                      disabled={!input.trim() || isLoading || isUploading}
+                      style={{
+                        background: "var(--accent)",
+                        color: "var(--btn-text)",
+                        border: "none",
+                        padding: "8px 20px",
+                        borderRadius: "4px",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        letterSpacing: "0.05em",
+                        opacity: !input.trim() || isLoading || isUploading ? 0.4 : 1,
+                        transition: "opacity 0.15s",
+                      }}
+                    >
+                      {isLoading ? "..." : "GENERATE"}
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={handlePlusClick}
+                      disabled={isLoading || isUploading}
+                      style={{ ...plusButtonStyle, padding: "8px 14px", fontSize: "14px" }}
+                      onMouseEnter={(e) => {
+                        if(!isLoading && !isUploading) {
+                          e.currentTarget.style.border = "1px solid var(--accent)";
+                          e.currentTarget.style.color = "var(--accent-text)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.border = "0.5px solid var(--border)";
+                        e.currentTarget.style.color = "var(--text-muted)";
+                      }}
+                    >
+                      {isUploading ? "..." : "+"}
+                    </button>
+                  </div>
+
                 </div>
               </div>
 
@@ -432,7 +516,7 @@ export function ChatWindow({ theme, onThemeToggle }: ChatWindowProps) {
           </div>
         )}
 
-        {/* Messages */}
+        {/* Messages History Area */}
         {(messages.length > 0 || isLoading) && (
           <div
             style={{
@@ -476,7 +560,7 @@ export function ChatWindow({ theme, onThemeToggle }: ChatWindowProps) {
 
             <div ref={bottomRef} />
 
-            {/* Send bar after messages */}
+            {/* Barra de entrada de texto fijada en la parte inferior de los mensajes */}
             <div
               style={{
                 position: "sticky",
@@ -523,25 +607,49 @@ export function ChatWindow({ theme, onThemeToggle }: ChatWindowProps) {
                     background: "var(--bg-secondary)",
                   }}
                 >
-                  <button
-                    onClick={handleSend}
-                    disabled={!input.trim() || isLoading}
-                    style={{
-                      background: "var(--accent)",
-                      color: "var(--btn-text)",
-                      border: "none",
-                      padding: "7px 18px",
-                      borderRadius: "4px",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                      letterSpacing: "0.05em",
-                      opacity: !input.trim() || isLoading ? 0.4 : 1,
-                    }}
-                  >
-                    {isLoading ? "..." : "GENERATE"}
-                  </button>
+                  
+                  {/* Acciones en Vista Chat Activo */}
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <button
+                      onClick={handleSend}
+                      disabled={!input.trim() || isLoading || isUploading}
+                      style={{
+                        background: "var(--accent)",
+                        color: "var(--btn-text)",
+                        border: "none",
+                        padding: "7px 18px",
+                        borderRadius: "4px",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        letterSpacing: "0.05em",
+                        opacity: !input.trim() || isLoading || isUploading ? 0.4 : 1,
+                      }}
+                    >
+                      {isLoading ? "..." : "GENERATE"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handlePlusClick}
+                      disabled={isLoading || isUploading}
+                      style={{ ...plusButtonStyle, padding: "7px 12px", fontSize: "13px" }}
+                      onMouseEnter={(e) => {
+                        if(!isLoading && !isUploading) {
+                          e.currentTarget.style.border = "1px solid var(--accent)";
+                          e.currentTarget.style.color = "var(--accent-text)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.border = "0.5px solid var(--border)";
+                        e.currentTarget.style.color = "var(--text-muted)";
+                      }}
+                    >
+                      {isUploading ? "..." : "+"}
+                    </button>
+                  </div>
+
                 </div>
               </div>
             </div>

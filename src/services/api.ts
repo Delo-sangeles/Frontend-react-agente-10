@@ -73,3 +73,35 @@ export async function checkHealth(): Promise<boolean> {
     return false;
   }
 }
+
+// Funcion para subir PDFS
+
+// Envía un archivo PDF al servidor de FastAPI para extraer su texto
+ // e indexarlo directamente en la colección de ChromaDB.
+
+export async function uploadPDF(file: File): Promise<{ message: string }> {
+  // 1. Creamos el contenedor FormData que empaqueta archivos binarios
+  const formData = new FormData();
+  
+  // CRUCIAL: El nombre "file" tiene que ser EXACTAMENTE el mismo 
+  // que pusiste en FastAPI -> (file: UploadFile = File(...))
+  formData.append("file", file);
+
+  // 2. Hacemos la petición POST a tu servidor local
+  // (Ajusta el puerto 8000 si tu FastAPI corre en otro, como el 8080)
+  const response = await fetch("http://localhost:8000/upload-pdf", {
+    method: "POST",
+    body: formData,
+    // NOTA: No pongas cabeceras de 'Content-Type'. 
+    // El navegador necesita configurar el "boundary" del FormData por sí mismo.
+  });
+
+  // 3. Si el backend escupe un error (un 400 o 500), lo capturamos
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Error en el servidor (${response.status})`);
+  }
+
+  // 4. Retornamos la respuesta exitosa del backend
+  return response.json(); 
+}
