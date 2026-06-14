@@ -29,6 +29,20 @@ export interface GenerateResponse {
   confidence_score?: number;
 }
 
+// ── INTERFAZ AJUSTADA PARA TU ENDPOINT DE BLUESKY ──
+// Mapea exactamente los campos del payload que tu FastAPI espera (payload: BlueskyPublishRequest)
+export interface BlueskyPublishRequest {
+  text: string;
+  handle: string;
+  app_password?: string; // Opcional por si en producción prefieres leerlo de variables de entorno en el backend
+}
+
+// Interfaz para tipar la respuesta exitosa que devuelve tu backend
+export interface BlueskyPublishResponse {
+  message: string;
+  uri: string;
+}
+
 const MOCK_RESPONSE: GenerateResponse = {
   content: `🧵 1/5 La IA está transformando el mundo del desarrollo...
 
@@ -75,10 +89,8 @@ export async function checkHealth(): Promise<boolean> {
 }
 
 // Funcion para subir PDFS
-
 // Envía un archivo PDF al servidor de FastAPI para extraer su texto
- // e indexarlo directamente en la colección de ChromaDB.
-
+// e indexarlo directamente en la colección de ChromaDB.
 export async function uploadPDF(file: File): Promise<{ message: string }> {
   // 1. Creamos el contenedor FormData que empaqueta archivos binarios
   const formData = new FormData();
@@ -88,12 +100,9 @@ export async function uploadPDF(file: File): Promise<{ message: string }> {
   formData.append("file", file);
 
   // 2. Hacemos la petición POST a tu servidor local
-  // (Ajusta el puerto 8000 si tu FastAPI corre en otro, como el 8080)
-  const response = await fetch("http://localhost:8000/upload-pdf", {
+  const response = await fetch(`${API_URL}/upload-pdf`, {
     method: "POST",
     body: formData,
-    // NOTA: No pongas cabeceras de 'Content-Type'. 
-    // El navegador necesita configurar el "boundary" del FormData por sí mismo.
   });
 
   // 3. Si el backend escupe un error (un 400 o 500), lo capturamos
@@ -104,4 +113,36 @@ export async function uploadPDF(file: File): Promise<{ message: string }> {
 
   // 4. Retornamos la respuesta exitosa del backend
   return response.json(); 
+}
+
+// ── FUNCIÓN NUEVA: PUBLICAR EN BLUESKY ──
+// Conecta directamente con tu endpoint asíncrono @app.post("/api/publish-bluesky")
+export async function publishToBluesky(request: BlueskyPublishRequest): Promise<BlueskyPublishResponse> {
+  // 1. Si estás probando la interfaz en local con MOCK activo, simulamos el delay
+  if (MOCK) {
+    await new Promise((r) => setTimeout(r, 1500));
+    return { 
+      message: "¡Post publicado con éxito en Bluesky! (Simulado por Frontend)", 
+      uri: "at://did:plc:mockuri12345/app.bsky.feed.post/mock" 
+    };
+  }
+
+  // 2. Petición POST real enviando el JSON estructurado con text, handle y app_password
+  const response = await fetch(`${API_URL}/api/publish-bluesky`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  // 3. Si Bluesky rechaza las credenciales o el texto, capturamos el HTTPException(status_code=400)
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    // errorData.detail obtendrá el result["error"] devuelto por tu servicio de Python
+    throw new Error(errorData.detail || `Error al publicar en Bluesky (${response.status})`);
+  }
+
+  // 4. Devolvemos el JSON con el mensaje y el URI de la publicación
+  return response.json();
 }
